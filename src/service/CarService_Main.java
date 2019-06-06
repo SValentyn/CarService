@@ -3,7 +3,7 @@ package service;
 import java.io.IOException;
 
 /**
- * Главный класс программного продукта.
+ * The main class of the software product.
  *
  * @author Syniuk Valentyn
  * @version 1.0

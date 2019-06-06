@@ -2,7 +2,7 @@ package processes;
 
 import base.Client;
 import base.Request;
-import enums.TypeReq;
+import enums.TypeWorkshop;
 import service.CarService;
 
 import java.io.IOException;
@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.Random;
 
 /**
- * Класс для генерирования случайным образом, массива заявок, на обслуживание автомобилей.
+ * Class for generating, randomly, an array of requests for car maintenance.
  */
 public class GenerateRequests {
 
@@ -26,11 +26,9 @@ public class GenerateRequests {
     }
 
     /**
-     * Метод для создания массива заявок {@link #createArrayRequests()}
-     * и отправки этого массива в дальнейшую обработку {@link CarService#receivingAndSendingRequests(Request[])}
+     * Method to create an array of requests {@link #createArrayRequests()} and send this array for further processing.
      *
      * @throws IOException if file write error
-     * @see #randomize()
      */
     private void createAndSendRequests() throws IOException {
         Request[] requests = createArrayRequests();
@@ -54,10 +52,10 @@ public class GenerateRequests {
         Request[] requests = new Request[4];
 
         for (int i = 0; i < requests.length; i++) {
-            requests[i] = new Request(client, TypeReq.values()[i]);
+            requests[i] = new Request(client, TypeWorkshop.values()[i]);
         }
-        shuffleArray(requests);
 
+        shuffleArray(requests);
         return requests;
     }
 
@@ -67,19 +65,17 @@ public class GenerateRequests {
     }
 
     /**
-     * Метод генерирования запросов на формирование массива заявок по графику рабочей недели,
-     * где длительность рабочего дня в будние дни - 12 часов, а в выходные - 8 часов;
-     * в середине дня плотность возникновения запроса выше
+     * The method of generating requests for the formation of an array of requests on the schedule of the working week,
+     * where the working day on weekdays is 12 hours, and on weekends - 8 hours; in the middle of the day, the query flow density is above average.
      *
      * @throws InterruptedException if thread interrupted
      * @throws IOException          if file write error
-     * @see #carService#generateRandomRequests()
      */
     public void randomize() throws InterruptedException, IOException {
         for (int day = 1; day <= 7; day++) {
             int step;
 
-            if (day <= 5) {  /* для будних дней */
+            if (day <= 5) {  // for weekdays
                 for (int minute = 0; minute <= WEEKDAY; minute += step) {
                     if (minute <= 270 | minute >= 450) {
                         step = random.nextInt(31) + 30;
@@ -89,7 +85,7 @@ public class GenerateRequests {
                     createAndSendRequests();
                     Thread.sleep(step * 10);
                 }
-            } else {  /* для выходных дней */
+            } else {  // for off days
                 for (int minute = 0; minute <= OFFDAY; minute += step) {
                     if (minute <= 180 | minute >= 300) {
                         step = random.nextInt(31) + 30;
@@ -101,7 +97,7 @@ public class GenerateRequests {
                 }
             }
         }
-        carService.setSignal(false); // завершение генерирования запросов
+        carService.setSignal(false); // complete requests generation
     }
 
 }

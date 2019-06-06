@@ -1,23 +1,23 @@
 package base;
 
-import enums.TypeReq;
+import enums.TypeWorkshop;
 
 public class Request {
 
     private Client client;
-    private TypeReq typeReq;
+    private TypeWorkshop type;
 
-    public Request(Client client, TypeReq typeReq) {
+    public Request(Client client, TypeWorkshop type) {
         this.client = client;
-        this.typeReq = typeReq;
+        this.type = type;
     }
 
     public Client getClient() {
         return client;
     }
 
-    public TypeReq getTypeReq() {
-        return typeReq;
+    public TypeWorkshop getType() {
+        return type;
     }
 }
 

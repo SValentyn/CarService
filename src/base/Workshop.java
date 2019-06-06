@@ -1,78 +1,71 @@
 package base;
 
 import enums.EmploymentRate;
-import enums.TypeReq;
-import processes.Statistics;
+import enums.TypeWorkshop;
 import service.CarService;
 
 import java.util.*;
 
 /**
- * Класс, который является образцом для проектирования и функционирования цеха.
- * Имеет моногенную коллекцию в виде очереди из объектов класса Request.
+ * Class, which is a model for the design and operation of the workshop.
+ * It has a monogenic collection in the form of a requests of objects of the class Request.
+ *
+ * @author Syniuk Valentyn
+ * @version 1.0
  */
 public class Workshop extends Thread {
 
-    private CarService carService = CarService.getInstance();
-    private Queue<Request> queue = new LinkedList<>();
-    private Random random = new Random();
-
     /**
-     * {@value #WEEK} 4,560 min * 10
+     * Presentation of one work week in seconds: {@value #WEEK = 4,560 min * 10}
      */
     private static final int WEEK = 45600;
 
-    private TypeReq typeReq;
+    private CarService carService = CarService.getInstance();
+    private Queue<Request> requests = new LinkedList<>();
+    private Random random = new Random();
+
+    private TypeWorkshop type;
     private int number_of_mechanics;
-    private int repair_cost;   // стоимость ремонта
-    private int maxRepairTime; // максимальное время выполнения
-    private int repair_time;   // время выполнения
-    private int difference_V;  // отличие от repair_time
+    private int repair_cost;
+    private int maxRepairTime;
+    private int repair_time;
+    private int difference_V;  // time difference from repair_time
 
     private int allRequests;
     private int completedRequests;
     private int lostRequests;
-    private long worktime;   // время полезной нагрузки
-    private long downtime;   // время простоя
-    private int total;   // доход от цеха
-    private int salary;  // заработная плата
-    private int profit;  // чистая прибыль
+    private long worktime;
+    private long downtime;
+    private int total;  // income from one workshop
+    private int salary;
+    private int profit;
 
-    /**
-     * Constructor
-     *
-     * @param typeReq       тип цеха
-     * @param repair_cost   стоимость ремонта
-     * @param maxRepairTime максимальное время ремонта
-     * @param difference_V  значение на которое отличается время ремонта от случайной величины
-     */
-    public Workshop(TypeReq typeReq, int repair_cost, int maxRepairTime, int difference_V) {
-        this.typeReq = typeReq;
+    public Workshop(TypeWorkshop type, int repair_cost, int maxRepairTime, int difference_V) {
+        this.type = type;
         this.number_of_mechanics = random.nextInt(6) + 2;
         this.repair_cost = repair_cost;
         this.maxRepairTime = maxRepairTime;
         this.repair_time = maxRepairTime / number_of_mechanics;
         this.difference_V = difference_V;
-        Thread thread = new Thread(this);
-        thread.start();
+        new Thread(this).start();
     }
 
-    public TypeReq getTypeReq() {
-        return typeReq;
+    public TypeWorkshop getType() {
+        return type;
     }
 
     public synchronized void addRequest(Request request) {
-        queue.add(request);
+        requests.add(request);
         allRequests++;
         notify();
     }
 
     private void removeRequest() {
-        queue.poll();
+        requests.poll();
     }
 
     private boolean checkIsEmpty() {
-        return queue.isEmpty();
+        return requests.isEmpty();
     }
 
     @Override
@@ -80,15 +73,15 @@ public class Workshop extends Thread {
         long initialTime = System.currentTimeMillis();
         while (carService.getSignal()) {
             try {
-                if ((System.currentTimeMillis() - initialTime) < (WEEK * 2)) { // работа цеха (неделя) + генерирование заявок
+                if ((System.currentTimeMillis() - initialTime) < (WEEK * 2)) { // workshop work (week) + generating requests
                     synchronized (this) {
                         if (checkIsEmpty()) {
-                            wait();   // ждём addRequest()
+                            wait();   // waiting for addRequest() method
                         }
-                        processing(); // обработка заявки
+                        processing();
                     }
                 } else {
-                    this.join();  // пропускаем оставшиеся заявки без обработки
+                    this.join();  // skip remaining requests without processing
                 }
             } catch (InterruptedException e) {
                 System.out.println("Thread interrupted: " + e);
@@ -98,20 +91,19 @@ public class Workshop extends Thread {
     }
 
     private void processing() throws InterruptedException {
-        int tempV = (repair_time + generateDifferenceRepairTime()) * 10; // время обслуживания
+        int tempV = (repair_time + generateDifferenceRepairTime()) * 10; // service time
         sleep(tempV);
 
-        worktime += tempV;    // подсчитываем время работы
-        total += repair_cost; // увеличиваем прибыль
-        completedRequests++;  // указываем что заявка обработана
-        removeRequest();      // удаляем выполненную заявку
+        worktime += tempV;    // calculate the processing time
+        total += repair_cost; // value of profit increases
+        completedRequests++;  // indicate that the application has been processed
+        removeRequest();      // delete completed request
     }
 
     /**
-     * Метод генерирования случайного значения, на которое будет отличается фиксированное время выполнения одной заявки
+     * The method of generating a random value by which the fixed execution time of a single request will differ.
      *
-     * @return значение на которое отличается время выполения
-     * @see #processing()
+     * @return the value for which the execution time differs
      */
     private int generateDifferenceRepairTime() {
         if (random.nextInt(10) == 0) {  // chance = 10%
@@ -125,10 +117,9 @@ public class Workshop extends Thread {
     }
 
     private void post_processing() {
-        getLostRequests();   // получение необработанных заявок
-        if (worktime >= WEEK) { // если цех был занят всё время
-            worktime = WEEK;
-        }
+        getLostRequests();                     // receipt of unprocessed requests
+        if (worktime >= WEEK) worktime = WEEK; // if the workshop was busy all the time
+
         downtime = WEEK - worktime;
         salary = payroll(total, number_of_mechanics);
         profit = total - salary * number_of_mechanics;
@@ -153,12 +144,7 @@ public class Workshop extends Thread {
     }
 
     /**
-     * Метод для подсчёта заработной платы механиков
-     *
-     * @param total               доход цеха
-     * @param number_of_mechanics кол-во механиков
-     * @return заработная плата
-     * @see #post_processing()
+     * Method for calculating the wages of mechanics.
      */
     private int payroll(int total, int number_of_mechanics) {
         if ((((total / 100) * 35) / number_of_mechanics) > 7000) {
@@ -169,10 +155,7 @@ public class Workshop extends Thread {
     }
 
     /**
-     * Метод для строкового представления средней длины очереди, "обрезанное" до сотых
-     *
-     * @return средняя длина очереди
-     * @see #expressAllStatistics_Workshop()
+     * Method for string representation of the average queue length ("trimmed" to the hundredth).
      */
     private Formatter expressAverageLengthQueue() {
         Formatter formatter = new Formatter(Locale.ENGLISH);
@@ -193,12 +176,7 @@ public class Workshop extends Thread {
     }
 
     /**
-     * Метод для нахождения уровня занятости {@link EmploymentRate} рабочих в цеху
-     *
-     * @return уровень занятости рабочих
-     * @see #showProcess_Workshop()
-     * @see #expressAllStatistics_Workshop()
-     * @see #expressRecommendations_Workshop()
+     * Method for finding the level of employment {@link EmploymentRate} of mechanics in the workshop.
      */
     private EmploymentRate employmentRate() {
         if ((2 * (WEEK - worktime)) <= worktime) {
@@ -211,7 +189,7 @@ public class Workshop extends Thread {
     }
 
     public void showProcess_Workshop() {
-        System.out.print("\u23FA Цех - \u00AB" + typeReq + "\u00BB: " + allRequests + " \u27A0 " + completedRequests +
+        System.out.print("\u23FA Workshop - \u00AB" + type + "\u00BB: " + allRequests + " \u27A0 " + completedRequests +
                 " \u26AF " + (averageRepairTime() / 10) + " min." + " \u27A0 " + employmentRate() + "\n");
     }
 
@@ -220,27 +198,26 @@ public class Workshop extends Thread {
     }
 
     /**
-     * Метод для представления всей статистики для цеха
+     * Method for presenting all statistics for the workshop.
      *
-     * @return строковое представление информации о цехе
      * @see #carService#writeToFile_AllStatistics()
      */
     public String expressAllStatistics_Workshop() {
-        return "\n<<< Цех - \u00AB" + typeReq + "\u00BB" +
-                "\n<<< Механиков - " + number_of_mechanics +
-                "\n\t\u23FA Общее число заявок: " + allRequests +
-                "\n\t\u23FA Обслуженно заявок : " + completedRequests +
-                "\n\t\u23FA Не будет обслуженно \u2248 " + lostRequests +
-                "\n\t\u23FA Средняя длина очереди: " + expressAverageLengthQueue() +
-                "\n\t\u23FA Фиксированное время обслуживания: " + repair_time + " min." +
-                "\n\t\u23FA Среднее время обслуживания: " + (averageRepairTime() / 10) + " min." +
-                "\n\t\u23FA Время полезной нагрузки: " + (worktime / 10) + " min." +
-                "\n\t\u23FA Время простоя цеха: " + (downtime / 10) + " min." +
-                "\n\t\u23FA Занятость рабочих: " + employmentRate() +
-                "\n\t\u23FA Доход цеха: " + total + "\u20B4" +
-                "\n\t\u23FA Зарплата механика: " + salary + "\u20B4" +
-                "\n\t\u23FA Чистая прибыль цеха: " + profit + "\u20B4" +
-                "\n\t\u23FA Потерянный доход \u2248 " + (lostRequests * repair_cost) + "\u20B4" +
+        return "\n<<< Workshop - \u00AB" + type + "\u00BB" +
+                "\n<<< Mechanics - " + number_of_mechanics +
+                "\n\t\u23FA Total number of requests: " + allRequests +
+                "\n\t\u23FA Serviced requests: " + completedRequests +
+                "\n\t\u23FA Will not be served \u2248 " + lostRequests +
+                "\n\t\u23FA Average queue length: " + expressAverageLengthQueue() +
+                "\n\t\u23FA Fixed service time: " + repair_time + " min." +
+                "\n\t\u23FA Average service time: " + (averageRepairTime() / 10) + " min." +
+                "\n\t\u23FA Worktime: " + (worktime / 10) + " min." +
+                "\n\t\u23FA Downtime: " + (downtime / 10) + " min." +
+                "\n\t\u23FA Employment of workers: " + employmentRate() +
+                "\n\t\u23FA base.Workshop revenue: " + total + "\u20B4" +
+                "\n\t\u23FA Salary mechanic: " + salary + "\u20B4" +
+                "\n\t\u23FA Net profit of the workshop: " + profit + "\u20B4" +
+                "\n\t\u23FA Lost income \u2248 " + (lostRequests * repair_cost) + "\u20B4" +
                 "\n" + carService.dividingLine();
     }
 
@@ -249,30 +226,28 @@ public class Workshop extends Thread {
     }
 
     /**
-     * Метод для представления рекомендаций для цеха, на основе собранных статистических данных
-     *
-     * @see #showRecommendations_Workshop
+     * Method for presenting recommendations for the workshop, based on the collected statistical data.
      */
     public String expressRecommendations_Workshop() {
-        StringBuffer string = new StringBuffer();
+        StringBuffer resultStr = new StringBuffer();
 
         int number_of_mechanics = this.number_of_mechanics;
         int lostRequests = this.lostRequests;
 
-        /* если есть необслуженные заявки */
+        /* If there are unserved requests */
         if (lostRequests > 0) {
-            if (downtime == 0) { // если время простоя равно 0
-                string.append("<<< Цех \u00AB").append(typeReq).append("\u00BB - несёт убытки!\n");
+            if (downtime == 0) {
+                resultStr.append("<<< Workshop \u00AB").append(type).append("\u00BB - incurs losses!\n");
             } else {
-                string.append("<<< Цех \u00AB").append(typeReq).append("\u00BB - может нести убытки!\n");
+                resultStr.append("<<< Workshop \u00AB").append(type).append("\u00BB - may incurs losses!\n");
             }
 
-            /* подсчёт необходимого кол-ва механиков, что бы необслуженных заявок не было */
+            /* Calculation of the necessary number of mechanics that would not be unserved requests */
             while (lostRequests > 0 & number_of_mechanics <= 7) {
-                int repair_time = maxRepairTime / ++number_of_mechanics; // новое расчётное время ремонта
-                int completedRequests = (WEEK / 10) / repair_time;       // новое кол-во обслуженных заявок
+                int repair_time = maxRepairTime / ++number_of_mechanics; // new estimated repair time
+                int completedRequests = (WEEK / 10) / repair_time;       // new number of requests served
 
-                /* подсчёт необслуженных заявок */
+                /* Counting unserved requests */
                 int allRequests = this.allRequests;
                 lostRequests = 0;
                 while (((allRequests - completedRequests) * repair_time) > (WEEK / 10)) {
@@ -280,46 +255,46 @@ public class Workshop extends Thread {
                     lostRequests++;
                 }
             }
-            string.append("\t\u23FA Следует увеличить кол-во механиков на: ").append(number_of_mechanics - this.number_of_mechanics).
-                    append("\n\t   \u27A5 Кол-во механиков станет: ").append(number_of_mechanics).
-                    append("\n\t   \u27A5 Необслуженных заявок: ").append(lostRequests).append("\n\n");
+            resultStr.append("\t\u23FA It is necessary to increase the number of mechanics on: ").append(number_of_mechanics - this.number_of_mechanics).
+                    append("\n\t   \u27A5 Number of mechanics will be: ").append(number_of_mechanics).
+                    append("\n\t   \u27A5 Not served requests will be: ").append(lostRequests).append("\n\n");
         } else {
-            string.append("<<< Цех \u00AB").append(typeReq).append("\u00BB - не несёт убытки.").append("\n");
+            resultStr.append("<<< Workshop \u00AB").append(type).append("\u00BB - does not incur losses.").append("\n");
 
-            /* Узнаём уровень занятости рабочих в цехе */
+            /* Finding out the level of employment of mechanics in the workshop */
             switch (employmentRate()) {
                 case LOW: {
-                    string.append("\t\u23FA Цех - низкоэффективный! Уровень занятости: ").append(EmploymentRate.LOW).append("\n");
+                    resultStr.append("\t\u23FA Workshop - low efficiency! Employment rate: ").append(EmploymentRate.LOW).append("\n");
                     break;
                 }
                 case MIDDLE: {
-                    string.append("\t\u23FA Цех может быть улучшен! Уровень занятости: ").append(EmploymentRate.MIDDLE).append("\n");
+                    resultStr.append("\t\u23FA Workshop can be improved! Employment rate: ").append(EmploymentRate.MIDDLE).append("\n");
                     break;
                 }
                 case HIGH: {
-                    string.append("\t\u23FA Цех работает эффективно! Уровень занятости: ").append(EmploymentRate.HIGH).append("\n\n");
-                    return String.valueOf(string);
+                    resultStr.append("\t\u23FA Workshop works effectively! Employment rate: ").append(EmploymentRate.HIGH).append("\n\n");
+                    return String.valueOf(resultStr);
                 }
             }
 
-            /* подсчёт времени обработки заявки с изменением кол-ва механиков */
+            /* Calculation of the processing time of the request with the change in the number of mechanics */
             int repair_time = this.repair_time;
-            int average_repair_time = (WEEK / 10) / allRequests;  // новое расчётное среднее время обслуживания
+            int average_repair_time = (WEEK / 10) / allRequests;  // new estimated average service time
             while ((average_repair_time >= repair_time) & (number_of_mechanics >= 2)) {
                 repair_time = maxRepairTime / --number_of_mechanics;
             }
 
             if (number_of_mechanics == this.number_of_mechanics) {
-                string.append("\t\u23FA Кол-во механиков нет необходимости изменять." + "\n\t  \u27A5 Время обработки заявки: ").
-                        append(repair_time).append(" min.").append("\n\n");
+                resultStr.append("\t\u23FA The number of mechanics is not necessary to change." +
+                        "\n\t  \u27A5 Request processing time: ").append(repair_time).append(" min.").append("\n\n");
             } else {
-                string.append("\t\u23FA Следует уменьшить кол-во механиков на: ").append(this.number_of_mechanics - number_of_mechanics).
-                        append("\n\t   \u27A5 Кол-во механиков станет: ").append(number_of_mechanics).
-                        append("\n\t\t  \u27A5 Время обработки заявки: ").append(repair_time).append(" min.").
-                        append("\n\t\t  \u27A5 Уровень занятости: ").append(EmploymentRate.HIGH).append("\n\n");
+                resultStr.append("\t\u23FA It is necessary to reduce the number of mechanics on: ").append(this.number_of_mechanics - number_of_mechanics).
+                        append("\n\t   \u27A5 Number of mechanics will be: ").append(number_of_mechanics).
+                        append("\n\t\t  \u27A5 Request processing time: ").append(repair_time).append(" min.").
+                        append("\n\t\t  \u27A5 Employment rate: ").append(EmploymentRate.HIGH).append("\n\n");
             }
         }
-        return String.valueOf(string);
+        return String.valueOf(resultStr);
     }
 
 }

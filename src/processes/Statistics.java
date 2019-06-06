@@ -3,13 +3,7 @@ package processes;
 import service.CarService;
 
 /**
- * Класс для визуализации на консоле, собранных статистических данных и рекомендаций для автосервиса.
- *
- * @author Valentyn
- * @version 1.0
- * @see CarService#showStatistics()
- * @see CarService#showGeneralStatistic()
- * @see CarService#showRecommendations()
+ * Class of visualization of the collected statistical data and recommendations for car service on the console.
  */
 public class Statistics implements Runnable {
 
@@ -39,6 +33,6 @@ public class Statistics implements Runnable {
         carService.showRecommendations();
         System.out.println(carService.dividingLine());
 
-        System.out.println("\nВремя работы программы: " + carService.getTotal_programTime() + " сек.");
+        System.out.println("\nThe time of the work program: " + carService.getTotal_programTime() + " sec.");
     }
 }

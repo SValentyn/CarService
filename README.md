@@ -7,7 +7,7 @@
  ---
  
 Description project: Simulation of car service workflow.  
-The application uses all OOP paradigms and technologies such as: 
+The application uses all OOP paradigms and technologies `such as:`
   * pattern programming (in particular, Singleton);
   * multithreading (wait/notify);
   * input/output to the console and files;
@@ -16,7 +16,7 @@ The application uses all OOP paradigms and technologies such as:
   
 In addition, there is a conclusion full of information, statistics and quality recommendations. Also, my term paper on this topic is attached to the repository (but in Ukrainian).   
      
-Below is an application class diagram:
+Below is an `application class diagram`:
 <p align="center">
   <img  width="100%" height="450" alt="Application class diagram" title="Application class diagram" src="https://github.com/SValentyn/CarService/blob/master/diagram.png">
 </p>
